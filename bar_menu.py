@@ -6,8 +6,7 @@ from kivy.uix.label import Label
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.gridlayout import GridLayout
 from creds import get_google_sheet
-from kivy.uix.widget import Widget
-from kivy.graphics import Color, Rectangle
+
 
 # Fetch data from the spreadsheet
 def fetch_data():
@@ -16,46 +15,21 @@ def fetch_data():
     data = main_sheet.get_all_records()  # Fetch all records as a list of dicts
     return data
 
-# Background Widget
-class BackgroundWidget(Widget):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        with self.canvas.before:
-            Color(0.1, 0.1, 0.1, 1)  # Dark background
-            self.bg = Rectangle(size=self.size, pos=self.pos)
-            self.bind(size=self.update_bg, pos=self.update_bg)
 
-    def update_bg(self, *args):
-        self.bg.size = self.size
-        self.bg.pos = self.pos
-
-# Kivy App
 class AlcoholMenuApp(App):
     def build(self):
-        # Root Layout (Vertical)
-        root_layout = BoxLayout(orientation="vertical")
-
-        # Title Label
-        title = Label(
-            text="Home Bar Menu",
-            font_size="30sp",
-            bold=True,
-            size_hint=(1, None),
-            height=60
-        )
-        root_layout.add_widget(title)
+        # Main Layout
+        layout = BoxLayout(orientation="vertical")
 
         # Scrollable View
         scroll_view = ScrollView(size_hint=(1, 1))
 
-        # Outer Layout (Holds Sections)
-        outer_layout = BoxLayout(orientation="vertical", size_hint_y=None)
-        outer_layout.bind(minimum_height=outer_layout.setter("height"))
+        # GridLayout for content
+        main_grid = GridLayout(cols=1, size_hint_y=None)
+        main_grid.bind(minimum_height=main_grid.setter("height"))
 
-        # Fetch Data
+        # Fetch and organize data by category
         data = fetch_data()
-
-        # Group Data by Category
         category_dict = {}
         for item in data:
             category = item.get("category", "Unknown Category")
@@ -63,41 +37,49 @@ class AlcoholMenuApp(App):
                 category_dict[category] = []
             category_dict[category].append(item)
 
-        # Add Sections
-        for category, drinks in category_dict.items():
-            # Section Header
-            section_header = Label(
-                text=f"[b]{category}[/b]",
-                markup=True,
-                font_size="24sp",
+        # Add categories and drinks to the layout
+        for category, items in category_dict.items():
+            # Category header
+            category_label = Label(
+                text=f"[b]{category}[/b]",  # Bold text
+                markup=True,  # Enable bold styling
                 size_hint_y=None,
                 height=50,
-                bold=True
+                font_size=24
             )
-            outer_layout.add_widget(section_header)
+            main_grid.add_widget(category_label)
 
-            # Grid Layout for Drinks
-            grid_layout = GridLayout(cols=1, size_hint_y=None)
-            grid_layout.bind(minimum_height=grid_layout.setter("height"))
+            # GridLayout for items in this category (2 columns)
+            category_grid = GridLayout(cols=2, size_hint_y=None)
+            category_grid.bind(minimum_height=category_grid.setter("height"))
 
-            for item in drinks:
+            for item in items:
                 name = item.get("name", "Unknown Item")
-                label = Label(
-                    text=f"{name}",
+                abv = item.get("abv", "N/A")  # Assuming ABV is stored as a column
+
+                # Create formatted text with dots between name and ABV
+                formatted_text = f"{name} {'.' * (50 - len(name) - len(abv))} {abv}%"
+
+                # Left-aligned drink name
+                drink_label = Label(
+                    text=formatted_text,
+                    halign="left",
                     size_hint_y=None,
                     height=40
                 )
-                grid_layout.add_widget(label)
+                drink_label.bind(size=drink_label.setter('text_size'))
 
-            outer_layout.add_widget(grid_layout)
+                category_grid.add_widget(drink_label)
 
-        # Add Outer Layout to ScrollView
-        scroll_view.add_widget(outer_layout)
+            # Add category grid to main layout
+            main_grid.add_widget(category_grid)
 
-        # Add ScrollView to Root Layout
-        root_layout.add_widget(scroll_view)
+        # Add everything to the scrollable view
+        scroll_view.add_widget(main_grid)
+        layout.add_widget(scroll_view)
 
-        return root_layout
+        return layout
+
 
 # Run the App
 if __name__ == "__main__":
