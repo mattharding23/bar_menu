@@ -24,7 +24,7 @@ class AlcoholMenuApp(App):
         # Scrollable View
         scroll_view = ScrollView(size_hint=(1, 1))
 
-        # GridLayout for content
+        # GridLayout for content (1 column to ensure each category spans fully)
         main_grid = GridLayout(cols=1, size_hint_y=None)
         main_grid.bind(minimum_height=main_grid.setter("height"))
 
@@ -39,17 +39,20 @@ class AlcoholMenuApp(App):
 
         # Add categories and drinks to the layout
         for category, items in category_dict.items():
-            # Category header
+            # Category header (spans both columns)
             category_label = Label(
                 text=f"[b]{category}[/b]",  # Bold text
                 markup=True,  # Enable bold styling
                 size_hint_y=None,
                 height=50,
-                font_size=24
+                font_size=24,
+                halign="center",
+                valign="middle"
             )
+            category_label.bind(size=category_label.setter('text_size'))
             main_grid.add_widget(category_label)
 
-            # GridLayout for items in this category (2 columns)
+            # GridLayout for items in this category (2 columns: name + ABV)
             category_grid = GridLayout(cols=2, size_hint_y=None)
             category_grid.bind(minimum_height=category_grid.setter("height"))
 
@@ -57,19 +60,30 @@ class AlcoholMenuApp(App):
                 name = item.get("name", "Unknown Item")
                 abv = item.get("abv", "N/A")  # Assuming ABV is stored as a column
 
-                # Create formatted text with dots between name and ABV
-                formatted_text = f"{name} {'.' * (50 - len(name) - len(abv))} {abv}%"
+                # Format ABV to 1 decimal place
+                formatted_abv = "{:.1f}".format(float(abv)) if abv != "N/A" else "N/A"
 
-                # Left-aligned drink name
+                # Left-aligned drink name with padding
                 drink_label = Label(
-                    text=formatted_text,
+                    text=f"    {name}",  # Adds padding using spaces
                     halign="left",
                     size_hint_y=None,
                     height=40
                 )
                 drink_label.bind(size=drink_label.setter('text_size'))
 
+                # Right-aligned ABV value
+                abv_label = Label(
+                    text=f"{formatted_abv}%",
+                    halign="right",
+                    size_hint_y=None,
+                    height=40
+                )
+                abv_label.bind(size=abv_label.setter('text_size'))
+
+                # Add both labels to the category grid
                 category_grid.add_widget(drink_label)
+                category_grid.add_widget(abv_label)
 
             # Add category grid to main layout
             main_grid.add_widget(category_grid)
